@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarIcon, PlayIcon, UsersIcon } from "lucide-react"
+import { CalendarIcon, UsersIcon } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,52 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import type { VideoMemory } from "@/lib/mock-videos"
+import type { Memory } from "@/lib/memories"
 
 interface VideoDetailDialogProps {
-  video: VideoMemory | null
+  video: Memory | null
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+function parseYouTube(url: string): { id: string; isShorts: boolean } {
+  try {
+    const u = new URL(url)
+
+    // shorts: /shorts/ID
+    if (u.pathname.startsWith("/shorts/")) {
+      const id = u.pathname.split("/shorts/")[1]?.split(/[/?#]/)[0] ?? ""
+      return { id, isShorts: !!id }
+    }
+
+    // embed: /embed/ID
+    if (u.pathname.startsWith("/embed/")) {
+      const id = u.pathname.split("/embed/")[1]?.split(/[/?#]/)[0] ?? ""
+      return { id, isShorts: false }
+    }
+
+    // youtu.be/ID
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.replace("/", "").split(/[/?#]/)[0] ?? ""
+      return { id, isShorts: false }
+    }
+
+    // watch?v=ID
+    const id = u.searchParams.get("v") ?? ""
+    return { id, isShorts: false }
+  } catch {
+    return { id: "", isShorts: false }
+  }
+}
+
+function buildEmbedUrl(id: string) {
+  const params = new URLSearchParams({
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    controls: "1",
+  })
+  return `https://www.youtube.com/embed/${id}?${params.toString()}`
 }
 
 export function VideoDetailDialog({
@@ -30,9 +70,15 @@ export function VideoDetailDialog({
     day: "numeric",
   })
 
+  const { id, isShorts } = video.assetUrl
+    ? parseYouTube(video.assetUrl)
+    : { id: "", isShorts: false }
+
+  const embedUrl = id ? buildEmbedUrl(id) : ""
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl sm:max-w-xl">
+      <DialogContent className="rounded-2xl sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{video.title}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -40,18 +86,31 @@ export function VideoDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Video player placeholder */}
-        <div className="aspect-video overflow-hidden rounded-xl bg-muted">
-          <div className="flex size-full flex-col items-center justify-center gap-2">
-            <div className="flex size-14 items-center justify-center rounded-full border-transparent bg-background shadow-md shadow-foreground/[0.06]">
-              <PlayIcon
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
+        {/* Player */}
+        <div className={isShorts ? "mx-auto w-full max-w-sm" : "w-full"}>
+          <div
+            className={
+              isShorts
+                ? "aspect-9/16 overflow-hidden rounded-xl bg-muted"
+                : "aspect-video overflow-hidden rounded-xl bg-muted"
+            }
+          >
+            {embedUrl ? (
+              <iframe
+                className="h-full w-full"
+                src={embedUrl}
+                title={video.title}
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
               />
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Видео тоглуулагч
-            </span>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <span className="text-sm text-muted-foreground">
+                  Видео холбоос буруу байна.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -62,9 +121,11 @@ export function VideoDetailDialog({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-foreground leading-relaxed">
-          {video.description}
-        </p>
+        {video.description ? (
+          <p className="text-sm leading-relaxed text-foreground">{video.description}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Тайлбар байхгүй.</p>
+        )}
 
         {/* People */}
         {video.people.length > 0 && (

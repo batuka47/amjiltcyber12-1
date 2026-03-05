@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import type { Memory } from "@/lib/mock-memories"
+import type { Memory } from "@/lib/memories"
 
 interface PhotoDetailDialogProps {
   memory: Memory | null
@@ -30,6 +30,8 @@ export function PhotoDetailDialog({
     day: "numeric",
   })
 
+  const imageSrc = memory.assetUrl
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl sm:max-w-lg">
@@ -40,21 +42,19 @@ export function PhotoDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Large image placeholder */}
+        {/* Large image */}
         <div className="aspect-video overflow-hidden rounded-xl bg-muted">
-          {memory.imageUrl ? (
+          {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={memory.imageUrl}
+              src={imageSrc}
               alt={memory.title}
               className="size-full object-cover"
+              loading="lazy"
             />
           ) : (
             <div className="flex size-full items-center justify-center">
-              <ImageIcon
-                className="size-12 text-muted-foreground/40"
-                aria-hidden="true"
-              />
+              <ImageIcon className="size-12 text-muted-foreground/40" aria-hidden="true" />
             </div>
           )}
         </div>
@@ -66,9 +66,13 @@ export function PhotoDetailDialog({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-foreground leading-relaxed">
-          {memory.description}
-        </p>
+        {memory.description ? (
+          <p className="text-sm leading-relaxed text-foreground">
+            {memory.description}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Тайлбар байхгүй.</p>
+        )}
 
         {/* People */}
         {memory.people.length > 0 && (

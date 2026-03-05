@@ -1,6 +1,6 @@
 "use client"
 
-import type { Student } from "@/lib/mock-about"
+import type { Student } from "@/lib/students"
 import {
   Dialog,
   DialogContent,
@@ -30,18 +30,31 @@ export function StudentDetailDialog({
         <DialogHeader>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
             {/* Bigger avatar */}
-            <div
-              className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-accent/10"
-              aria-hidden="true"
-            >
-              <User className="size-9 text-accent" />
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl bg-accent/10">
+              {student.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={student.avatarUrl}
+                  alt={`${student.name} зураг`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+                  <User className="size-9 text-accent" />
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-1 sm:items-start">
               <DialogTitle>{student.name}</DialogTitle>
               <DialogDescription asChild>
                 <span>
-                  <Badge variant="secondary">{student.bestTitle}</Badge>
+                  {student.bestTitle ? (
+                    <Badge variant="secondary">{student.bestTitle}</Badge>
+                  ) : (
+                    <Badge variant="secondary">—</Badge>
+                  )}
                 </span>
               </DialogDescription>
             </div>
@@ -57,29 +70,37 @@ export function StudentDetailDialog({
 
           {student.achievements.length > 0 ? (
             <div className="mt-2 flex flex-col gap-4">
-              {student.achievements.map((achievement, index) => (
+              {student.achievements.map((achievement) => (
                 <div
-                  key={index}
+                  key={achievement.id}
                   className="rounded-xl border border-border/60 bg-muted/40 px-4 py-3"
                 >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <h5 className="text-sm font-medium text-foreground">
                       {achievement.title}
                     </h5>
-                    <time
-                      dateTime={achievement.date}
-                      className="text-xs text-muted-foreground"
-                    >
-                      {new Date(achievement.date).toLocaleDateString("mn-MN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </time>
+
+                    {achievement.achieved_on ? (
+                      <time
+                        dateTime={achievement.achieved_on}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {new Date(achievement.achieved_on).toLocaleDateString("mn-MN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </time>
+                    ) : (
+                      <span className="text-xs text-muted-foreground"></span>
+                    )}
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {achievement.description}
-                  </p>
+
+                  {achievement.description ? (
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      {achievement.description}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>

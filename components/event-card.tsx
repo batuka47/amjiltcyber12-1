@@ -29,7 +29,7 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
       <div
-        className="relative flex aspect-[16/10] w-full items-center justify-center bg-secondary/70"
+        className="relative flex aspect-16/10 w-full items-center justify-center bg-secondary/70"
         role="img"
         aria-label={`${event.title} зургийн орон зай`}
       >
