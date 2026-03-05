@@ -6,10 +6,19 @@ import { User } from "lucide-react"
 
 interface StudentCardProps {
   student: Student
-  onSelect: (student: Student) => void
+  onSelect?: (student: Student) => void
+
+  // ✅ new toggles
+  showAchievementsCount?: boolean
+  showDetailsButton?: boolean
 }
 
-export function StudentCard({ student, onSelect }: StudentCardProps) {
+export function StudentCard({
+  student,
+  onSelect,
+  showAchievementsCount = true,
+  showDetailsButton = true,
+}: StudentCardProps) {
   return (
     <Card className="group overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
       <CardContent className="flex flex-col items-center gap-3 p-5 text-center">
@@ -20,7 +29,7 @@ export function StudentCard({ student, onSelect }: StudentCardProps) {
             <img
               src={student.avatarUrl}
               alt={`${student.name} зураг`}
-              className="h-full w-full object-cover"
+              className="w-full object-cover scale-125"
               loading="lazy"
             />
           ) : (
@@ -44,18 +53,24 @@ export function StudentCard({ student, onSelect }: StudentCardProps) {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {student.achievements.length} амжилт
-        </p>
+        {/* ✅ Hide on special-day page */}
+        {showAchievementsCount && (
+          <p className="text-xs text-muted-foreground">
+            {student.achievements?.length ?? 0} амжилт
+          </p>
+        )}
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full rounded-xl border-border/60 bg-secondary/70 text-foreground transition-all duration-200 hover:bg-secondary"
-          onClick={() => onSelect(student)}
-        >
-          Дэлгэрэнгүй
-        </Button>
+        {/* ✅ Hide on special-day page */}
+        {showDetailsButton && onSelect && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full rounded-xl border-border/60 bg-secondary/70 text-foreground transition-all duration-200 hover:bg-secondary"
+            onClick={() => onSelect(student)}
+          >
+            Дэлгэрэнгүй
+          </Button>
+        )}
       </CardContent>
     </Card>
   )

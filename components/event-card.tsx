@@ -25,9 +25,8 @@ interface EventCardProps {
 
 export function EventCard({ event }: EventCardProps) {
   const isLocked = event.type === "Нууц видео"
-
-  // ✅ correct routing
-  const href = isLocked ? "/special-day/video" : `/special-days/${event.slug}`
+  
+  const href = isLocked ? `/special-day/video/${event.slug}` : `/special-days/${event.slug}`
 
   return (
     <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
