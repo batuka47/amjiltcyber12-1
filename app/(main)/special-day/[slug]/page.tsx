@@ -39,18 +39,17 @@ type ProfileRow = {
 }
 
 export default function ProtectedVideoPage() {
-  // ✅ This page is for March 8 protected day
   const slug = "march-8"
 
   const [loading, setLoading] = useState(true)
   const [specialDay, setSpecialDay] = useState<SpecialDayPublicRow | null>(null)
   const [specialStudents, setSpecialStudents] = useState<Student[]>([])
 
-  // Student info dialog (existing)
+  // student detail dialog (your existing dialog)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [studentDialogOpen, setStudentDialogOpen] = useState(false)
 
-  // Unlock dialog (password per student)
+  // unlock dialog (password + video)
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [unlockStudent, setUnlockStudent] = useState<Student | null>(null)
   const [password, setPassword] = useState("")
@@ -64,7 +63,6 @@ export default function ProtectedVideoPage() {
     ;(async () => {
       setLoading(true)
 
-      // 1) Load special day (public safe view)
       const { data: day, error: dayErr } = await supabase
         .from("special_days_public")
         .select("id,slug,title,hero_title,hero_subtitle,hero_image_url,type")
@@ -72,7 +70,6 @@ export default function ProtectedVideoPage() {
         .maybeSingle()
 
       if (!mounted) return
-
       if (dayErr || !day) {
         console.error(dayErr)
         setSpecialDay(null)
@@ -83,7 +80,7 @@ export default function ProtectedVideoPage() {
 
       setSpecialDay(day as SpecialDayPublicRow)
 
-      // 2) Load special students for this day (join table -> profiles)
+      // load special students
       const { data: rows, error: joinErr } = await supabase
         .from("special_day_students")
         .select("profile_id, profiles:profiles (id, full_name, avatar_url, best_title)")
@@ -103,7 +100,7 @@ export default function ProtectedVideoPage() {
             name: p!.full_name,
             avatarUrl: p!.avatar_url ?? null,
             bestTitle: p!.best_title ?? null,
-            achievements: [], // not needed here
+            achievements: [],
           }))
 
         setSpecialStudents(mapped)
@@ -143,11 +140,9 @@ export default function ProtectedVideoPage() {
 
   const handleUnlock = async () => {
     if (!unlockStudent) return
-
     setUnlocking(true)
     setUnlockError(null)
 
-    // ✅ per-student unlock
     const { data, error } = await supabase.rpc("unlock_student_video", {
       p_special_slug: slug,
       p_profile_id: unlockStudent.id,
@@ -180,7 +175,7 @@ export default function ProtectedVideoPage() {
   if (!specialDay || !heroModel) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <p className="text-sm text-muted-foreground">Өдөр олдсонгүй.</p>
+        <p className="text-sm text-muted-foreground">Онцгой өдөр олдсонгүй.</p>
       </main>
     )
   }
@@ -190,7 +185,6 @@ export default function ProtectedVideoPage() {
       <SpecialDayHero specialDay={heroModel as any} />
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* ✅ No password on page load */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <Users className="size-5 text-muted-foreground" />
@@ -205,6 +199,7 @@ export default function ProtectedVideoPage() {
                 <StudentCard
                   student={student}
                   onSelect={(s) => {
+                    // keep your existing student detail dialog on "Дэлгэрэнгүй"
                     setSelectedStudent(s)
                     setStudentDialogOpen(true)
                   }}
@@ -223,7 +218,7 @@ export default function ProtectedVideoPage() {
         </section>
       </main>
 
-      {/* Student detail dialog */}
+      {/* Student detail (your existing) */}
       <StudentDetailDialog
         student={selectedStudent}
         open={studentDialogOpen}
@@ -306,6 +301,7 @@ export default function ProtectedVideoPage() {
                 variant="outline"
                 className="w-full rounded-xl"
                 onClick={() => {
+                  // allow switching students without closing page
                   setUnlockedUrl(null)
                   setPassword("")
                   setUnlockError(null)

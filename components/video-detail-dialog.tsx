@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { CalendarIcon, UsersIcon } from "lucide-react"
 import {
   Dialog,
@@ -62,6 +63,16 @@ export function VideoDetailDialog({
   open,
   onOpenChange,
 }: VideoDetailDialogProps) {
+  // Prevent background scroll while dialog open
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev || "auto"
+    }
+  }, [open])
+
   if (!video) return null
 
   const formattedDate = new Date(video.takenAt).toLocaleDateString("mn-MN", {
@@ -78,7 +89,7 @@ export function VideoDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl sm:max-w-2xl">
+      <DialogContent className="rounded-2xl sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{video.title}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -101,6 +112,7 @@ export function VideoDetailDialog({
                 src={embedUrl}
                 title={video.title}
                 loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
@@ -122,7 +134,9 @@ export function VideoDetailDialog({
 
         {/* Description */}
         {video.description ? (
-          <p className="text-sm leading-relaxed text-foreground">{video.description}</p>
+          <p className="text-sm leading-relaxed text-foreground">
+            {video.description}
+          </p>
         ) : (
           <p className="text-sm text-muted-foreground">Тайлбар байхгүй.</p>
         )}
