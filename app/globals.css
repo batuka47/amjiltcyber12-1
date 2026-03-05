@@ -1,0 +1,143 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Clean white base with warm (#ffbb98, #fbe0c3) and cool (#37d8e9) accents */
+  --background: #ffffff;
+  --foreground: #334464;
+  --card: #ffffff;
+  --card-foreground: #334464;
+  --popover: #ffffff;
+  --popover-foreground: #334464;
+  --primary: #ffbb98;
+  --primary-foreground: #334464;
+  --secondary: #faf7f5;
+  --secondary-foreground: #334464;
+  --muted: #f5f3f1;
+  --muted-foreground: #5a6a82;
+  --accent: #37d8e9;
+  --accent-foreground: #334464;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: #eee9e4;
+  --input: #eee9e4;
+  --ring: #ffbb98;
+  --chart-1: #ffbb98;
+  --chart-2: #37d8e9;
+  --chart-3: #334464;
+  --chart-4: #f5d5b8;
+  --chart-5: #fbe0c3;
+  --radius: 1rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334464;
+  --sidebar-primary: #ffbb98;
+  --sidebar-primary-foreground: #334464;
+  --sidebar-accent: #faf7f5;
+  --sidebar-accent-foreground: #334464;
+  --sidebar-border: #eee9e4;
+  --sidebar-ring: #ffbb98;
+}
+
+/* Dark mode inherits same palette - light-only site */
+.dark {
+  --background: #ffffff;
+  --foreground: #334464;
+  --card: #ffffff;
+  --card-foreground: #334464;
+  --popover: #ffffff;
+  --popover-foreground: #334464;
+  --primary: #ffbb98;
+  --primary-foreground: #334464;
+  --secondary: #faf7f5;
+  --secondary-foreground: #334464;
+  --muted: #f5f3f1;
+  --muted-foreground: #5a6a82;
+  --accent: #37d8e9;
+  --accent-foreground: #334464;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: #eee9e4;
+  --input: #eee9e4;
+  --ring: #ffbb98;
+  --chart-1: #ffbb98;
+  --chart-2: #37d8e9;
+  --chart-3: #334464;
+  --chart-4: #f5d5b8;
+  --chart-5: #fbe0c3;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334464;
+  --sidebar-primary: #ffbb98;
+  --sidebar-primary-foreground: #334464;
+  --sidebar-accent: #faf7f5;
+  --sidebar-accent-foreground: #334464;
+  --sidebar-border: #eee9e4;
+  --sidebar-ring: #ffbb98;
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Smooth scrollbar hide utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Soft focus ring */
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
