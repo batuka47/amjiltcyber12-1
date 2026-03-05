@@ -290,11 +290,6 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
                     showAchievementsCount={false}
                     showDetailsButton={false}
                   />
-
-                  <div className="px-1 text-xs text-muted-foreground line-clamp-1">
-                    {item.videoTitle}
-                  </div>
-
                   <Button
                     variant="outline"
                     className="w-full rounded-xl"
