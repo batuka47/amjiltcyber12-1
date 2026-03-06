@@ -27,7 +27,7 @@ const memoryItems = [
 const navLinks = [
   { label: "Нүүр", href: "/" },
   { label: "Бидний тухай", href: "/about" },
-  { label: "Админ", href: "/admin" },
+  // { label: "Админ", href: "/admin" },
 ]
 
 export function MobileNav() {

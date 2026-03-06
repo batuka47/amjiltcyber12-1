@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { PhotosHero } from "@/components/photos-hero"
+import PhotosHero from "@/components/photos-hero"
 import { PhotosFilterBar } from "@/components/photos-filter-bar"
 import { PhotoCard } from "@/components/photo-card"
 import { PhotoDetailDialog } from "@/components/photo-detail-dialog"
@@ -22,12 +22,15 @@ export default function PhotosPage() {
 
   useEffect(() => {
     let alive = true
+
     async function run() {
       try {
         setLoading(true)
         setError(null)
+
         const data = await fetchMemoriesByType("image")
         if (!alive) return
+
         setItems(data)
       } catch (e: any) {
         if (!alive) return
@@ -37,7 +40,9 @@ export default function PhotosPage() {
         setLoading(false)
       }
     }
+
     run()
+
     return () => {
       alive = false
     }
@@ -56,19 +61,26 @@ export default function PhotosPage() {
       if (search && !m.title.toLowerCase().includes(search.toLowerCase())) {
         return false
       }
+
       if (person && !m.people.some((p) => p.name === person)) {
         return false
       }
+
       if (dateFrom && m.takenAt < dateFrom) {
         return false
       }
+
       return true
     })
   }, [items, search, person, dateFrom])
 
   const lastDate = useMemo(() => {
     if (items.length === 0) return null
-    return items.reduce((latest, m) => (m.takenAt > latest ? m.takenAt : latest), items[0].takenAt)
+
+    return items.reduce(
+      (latest, m) => (m.takenAt > latest ? m.takenAt : latest),
+      items[0].takenAt
+    )
   }, [items])
 
   function handleSelect(memory: Memory) {
@@ -113,13 +125,20 @@ export default function PhotosPage() {
         ) : filtered.length > 0 ? (
           <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((memory) => (
-              <PhotoCard key={memory.id} memory={memory} onSelect={handleSelect} />
+              <PhotoCard
+                key={memory.id}
+                memory={memory}
+                onSelect={handleSelect}
+              />
             ))}
           </div>
         ) : (
           <div className="mt-16 flex flex-col items-center gap-3 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 shadow-sm shadow-foreground/3">
-              <ImageIcon className="size-6 text-muted-foreground" aria-hidden="true" />
+              <ImageIcon
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
             </div>
             <p className="text-sm text-muted-foreground">
               Таны хайлтад тохирох зураг олдсонгүй.

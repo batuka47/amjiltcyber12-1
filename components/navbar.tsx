@@ -121,7 +121,7 @@ export function DesktopNav() {
         </NavigationMenuItem>
 
         {/* Админ */}
-        <NavigationMenuItem>
+        {/* <NavigationMenuItem>
           <NavigationMenuLink asChild>
             <Link
               href="/admin"
@@ -135,7 +135,7 @@ export function DesktopNav() {
               Админ
             </Link>
           </NavigationMenuLink>
-        </NavigationMenuItem>
+        </NavigationMenuItem> */}
       </NavigationMenuList>
     </NavigationMenu>
   )

@@ -13,6 +13,7 @@ export type Student = {
   name: string
   avatarUrl: string | null
   bestTitle: string | null
+  role: "student" | "teacher"
   achievements: Achievement[]
 }
 
@@ -21,6 +22,7 @@ type PublicProfileRow = {
   full_name: string
   avatar_url: string | null
   best_title: string | null
+  role: "student" | "teacher"
 }
 
 type AchievementRow = {
@@ -33,14 +35,12 @@ type AchievementRow = {
 }
 
 export async function fetchStudentsWithAchievements(): Promise<Student[]> {
-  // 1) students from VIEW (public_profiles)
   const { data: profiles, error: profilesError } = await supabase
     .from("public_profiles")
-    .select("id, full_name, avatar_url, best_title")
+    .select("id, full_name, avatar_url, best_title, role")
 
   if (profilesError) throw profilesError
 
-  // 2) all achievements (public select allowed by your RLS)
   const { data: ach, error: achError } = await supabase
     .from("achievements")
     .select("id, profile_id, title, description, achieved_on, image_url")
@@ -50,8 +50,8 @@ export async function fetchStudentsWithAchievements(): Promise<Student[]> {
   const profs = (profiles ?? []) as PublicProfileRow[]
   const achievements = (ach ?? []) as AchievementRow[]
 
-  // group achievements by profile_id
   const byStudent = new Map<string, Achievement[]>()
+
   for (const a of achievements) {
     const list = byStudent.get(a.profile_id) ?? []
     list.push({
@@ -64,7 +64,6 @@ export async function fetchStudentsWithAchievements(): Promise<Student[]> {
     byStudent.set(a.profile_id, list)
   }
 
-  // sort achievements newest first
   for (const [, list] of byStudent) {
     list.sort((x, y) => {
       const ax = x.achieved_on ?? ""
@@ -79,6 +78,7 @@ export async function fetchStudentsWithAchievements(): Promise<Student[]> {
       name: p.full_name,
       avatarUrl: p.avatar_url,
       bestTitle: p.best_title,
+      role: p.role,
       achievements: byStudent.get(p.id) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name))

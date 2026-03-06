@@ -31,13 +31,13 @@ export function SpecialDayHero({ specialDay }: SpecialDayHeroProps) {
 
   return (
     <section className="relative overflow-hidden bg-muted">
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 -top-96">
         {specialDay.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={specialDay.coverImage}
             alt={specialDay.title}
-            className="size-full object-cover"
+            className="size-full object-cover bg-center"
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-muted">
