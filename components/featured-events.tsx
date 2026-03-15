@@ -5,12 +5,13 @@ import { Sparkles } from "lucide-react"
 import { EventCard, type EventItem } from "@/components/event-card"
 import { supabase } from "@/lib/supabase/client"
 
-type SpecialDayPublicRow = {
+type SpecialDayRow = {
   slug: string
   title: string
   hero_subtitle: string | null
   hero_image_url: string | null
-  type: "gallery" | "protected_video"
+  type: "photo_collection" | "protected_video"
+  is_public: boolean
 }
 
 export function FeaturedEvents() {
@@ -24,15 +25,15 @@ export function FeaturedEvents() {
       setLoading(true)
 
       const { data, error } = await supabase
-        .from("special_days_public")
-        .select("slug,title,hero_subtitle,hero_image_url,type")
+        .from("special_days")
+        .select("slug,title,hero_subtitle,hero_image_url,type,is_public")
+        .eq("is_public", true)
         .order("title", { ascending: true })
         .order("slug", { ascending: true })
 
       if (!mounted) return
 
       if (error) {
-        // ✅ print the real useful details
         console.error("[featured events error]", {
           message: (error as any).message,
           details: (error as any).details,
@@ -46,7 +47,7 @@ export function FeaturedEvents() {
         return
       }
 
-      const rows = (data ?? []) as SpecialDayPublicRow[]
+      const rows = (data ?? []) as SpecialDayRow[]
 
       const mapped: EventItem[] = rows.map((r) => ({
         slug: r.slug,

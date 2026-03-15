@@ -30,14 +30,14 @@ export function SpecialDayHero({ specialDay }: SpecialDayHeroProps) {
     : null
 
   return (
-    <section className="relative overflow-hidden bg-muted">
-      <div className="absolute inset-0 -top-96">
+    <section className="relative overflow-hidden bg-muted md:h-[420px]">
+      <div className="absolute inset-0 md:-top-24">
         {specialDay.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={specialDay.coverImage}
             alt={specialDay.title}
-            className="size-full object-cover bg-center"
+            className="size-full object-cover object-center"
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-muted">
@@ -48,7 +48,7 @@ export function SpecialDayHero({ specialDay }: SpecialDayHeroProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 md:flex md:h-full md:items-end">
         <div className="flex flex-col items-start gap-3">
           {formattedDate && (
             <div className="flex items-center gap-1.5 rounded-2xl border border-border/60 bg-background/80 px-3.5 py-1.5 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm">

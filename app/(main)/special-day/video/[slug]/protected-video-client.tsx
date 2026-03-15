@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
-import { AlertCircle, KeyRound, Users, UserRound, PlayCircle } from "lucide-react"
+import {
+  AlertCircle,
+  KeyRound,
+  Users,
+  UserRound,
+  PlayCircle,
+} from "lucide-react"
 
 import { supabase } from "@/lib/supabase/client"
 import { SpecialDayHero } from "@/components/special-day-hero"
@@ -22,24 +28,25 @@ import { Badge } from "@/components/ui/badge"
 import type { Student } from "@/lib/students"
 import { buildEmbedUrl, parseYouTube } from "@/lib/youtube"
 
-type SpecialDayPublicRow = {
+type SpecialDayRow = {
   id: string
   slug: string
   title: string
   hero_title: string | null
   hero_subtitle: string | null
   hero_image_url: string | null
-  type: "gallery" | "protected_video"
+  type: "photo_collection" | "protected_video"
   event_date: string | null
+  is_public: boolean
 }
 
 type ProfileRow = {
   id: string
-  role: string | null
+  role: "student" | "teacher" | "admin" | null
   full_name: string
   avatar_url: string | null
   best_title: string | null
-  bio?: string | null
+  quote: string | null
 }
 
 type VideoRowPublic = {
@@ -50,12 +57,22 @@ type VideoRowPublic = {
   created_at: string | null
 }
 
+type SpecialDayStudentRow = {
+  special_day_id: string
+  profile_id: string
+}
+
 type VideoItem = {
   videoId: string
   videoTitle: string
   role: string | null
-  bio?: string | null
+  quote: string | null
   student: Student
+}
+
+type StudentListItem = {
+  student: Student
+  video: VideoItem | null
 }
 
 function dumpSupabaseError(tag: string, err: any, extra?: any) {
@@ -88,11 +105,10 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [specialDay, setSpecialDay] = useState<SpecialDayPublicRow | null>(null)
+  const [specialDay, setSpecialDay] = useState<SpecialDayRow | null>(null)
   const [teacherVideo, setTeacherVideo] = useState<VideoItem | null>(null)
-  const [studentVideos, setStudentVideos] = useState<VideoItem[]>([])
+  const [studentItems, setStudentItems] = useState<StudentListItem[]>([])
 
-  // unlock dialog
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [unlockVideo, setUnlockVideo] = useState<VideoItem | null>(null)
   const [password, setPassword] = useState("")
@@ -110,34 +126,35 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
 
       // 1) special day
       const { data: day, error: dayErr } = await supabase
-        .from("special_days_public")
-        .select("id,slug,title,hero_title,hero_subtitle,hero_image_url,type,event_date")
+        .from("special_days")
+        .select("id,slug,title,hero_title,hero_subtitle,hero_image_url,type,event_date,is_public")
         .eq("slug", slug)
+        .eq("is_public", true)
         .maybeSingle()
 
       if (!mounted) return
 
       if (dayErr || !day) {
-        dumpSupabaseError("[special_days_public error]", dayErr, { slug })
+        dumpSupabaseError("[special_days error]", dayErr, { slug })
         setSpecialDay(null)
         setTeacherVideo(null)
-        setStudentVideos([])
+        setStudentItems([])
         setLoadError("Онцгой өдөр олдсонгүй.")
         setLoading(false)
         return
       }
 
-      const ev = day as SpecialDayPublicRow
+      const ev = day as SpecialDayRow
       setSpecialDay(ev)
 
       if (ev.type !== "protected_video") {
         setTeacherVideo(null)
-        setStudentVideos([])
+        setStudentItems([])
         setLoading(false)
         return
       }
 
-      // 2) videos (public view)
+      // 2) get public video rows
       const { data: videoRows, error: vErr } = await supabase
         .from("special_day_student_videos_public")
         .select("id,special_day_id,profile_id,title,created_at")
@@ -152,43 +169,112 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
           specialDayId: ev.id,
         })
         setTeacherVideo(null)
-        setStudentVideos([])
+        setStudentItems([])
         setLoading(false)
         return
       }
 
-      const rows = (videoRows ?? []) as VideoRowPublic[]
-      if (rows.length === 0) {
+      const safeVideoRows = (videoRows ?? []) as VideoRowPublic[]
+
+      // 3) get student membership list
+      const { data: dayStudents, error: dsErr } = await supabase
+        .from("special_day_students")
+        .select("special_day_id,profile_id")
+        .eq("special_day_id", ev.id)
+
+      if (!mounted) return
+
+      if (dsErr) {
+        dumpSupabaseError("[special_day_students error]", dsErr, {
+          slug,
+          specialDayId: ev.id,
+        })
         setTeacherVideo(null)
-        setStudentVideos([])
+        setStudentItems([])
         setLoading(false)
         return
       }
 
-      const profileIds = Array.from(new Set(rows.map((r) => r.profile_id).filter(Boolean)))
+      const studentMembershipRows = (dayStudents ?? []) as SpecialDayStudentRow[]
+      const studentProfileIds = Array.from(
+        new Set(studentMembershipRows.map((r) => r.profile_id).filter(Boolean))
+      )
 
-      // 3) profiles (must include role)
+      const videoProfileIds = Array.from(
+        new Set(safeVideoRows.map((r) => r.profile_id).filter(Boolean))
+      )
+
+      const allNeededProfileIds = Array.from(
+        new Set([...studentProfileIds, ...videoProfileIds])
+      )
+
+      if (allNeededProfileIds.length === 0) {
+        setTeacherVideo(null)
+        setStudentItems([])
+        setLoading(false)
+        return
+      }
+
+      // NOTE:
+      // current public_profiles view still seems to expose `bio`, not `quote`
+      // so we alias bio -> quote in the select
       const { data: profiles, error: pErr } = await supabase
         .from("public_profiles")
-        .select("id,role,full_name,avatar_url,best_title,bio")
-        .in("id", profileIds)
+        .select("id,role,full_name,avatar_url,best_title,quote:bio")
+        .in("id", allNeededProfileIds)
 
       if (!mounted) return
 
       if (pErr) {
         dumpSupabaseError("[public_profiles error]", pErr, { slug, specialDayId: ev.id })
         setTeacherVideo(null)
-        setStudentVideos([])
+        setStudentItems([])
         setLoading(false)
         return
       }
 
-      const mapById = new Map<string, ProfileRow>()
-      ;(profiles ?? []).forEach((p: any) => mapById.set(p.id, p as ProfileRow))
+      const profileMap = new Map<string, ProfileRow>()
+      ;(profiles ?? []).forEach((p: any) => {
+        profileMap.set(p.id, p as ProfileRow)
+      })
 
-      const mapped: VideoItem[] = rows
-        .map((r) => {
-          const p = mapById.get(r.profile_id)
+      const videoByProfileId = new Map<string, VideoRowPublic>()
+      for (const row of safeVideoRows) {
+        if (!videoByProfileId.has(row.profile_id)) {
+          videoByProfileId.set(row.profile_id, row)
+        }
+      }
+
+      // Teacher comes from video rows + profile role
+      let teacher: VideoItem | null = null
+
+      for (const row of safeVideoRows) {
+        const p = profileMap.get(row.profile_id)
+        if (!p || p.role !== "teacher") continue
+
+        const teacherStudent: Student = {
+          id: p.id,
+          name: p.full_name,
+          avatarUrl: p.avatar_url ?? null,
+          bestTitle: p.best_title ?? null,
+          role: "teacher",
+          achievements: [],
+        }
+
+        teacher = {
+          videoId: row.id,
+          videoTitle: row.title?.trim() || p.full_name,
+          role: p.role,
+          quote: p.quote ?? null,
+          student: teacherStudent,
+        }
+        break
+      }
+
+      // Students come from special_day_students
+      const studentsSorted: StudentListItem[] = studentProfileIds
+        .map((profileId) => {
+          const p = profileMap.get(profileId)
           if (!p) return null
 
           const student: Student = {
@@ -196,28 +282,29 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
             name: p.full_name,
             avatarUrl: p.avatar_url ?? null,
             bestTitle: p.best_title ?? null,
-            role: (p.role === "teacher" ? "teacher" : "student"),
+            role: "student",
             achievements: [],
           }
 
-          return {
-            videoId: r.id,
-            videoTitle: (r.title?.trim() || p.full_name) as string,
-            role: p.role ?? null,
-            bio: p.bio ?? null,
-            student,
-          }
+          const videoRow = videoByProfileId.get(profileId)
+
+          const video: VideoItem | null = videoRow
+            ? {
+                videoId: videoRow.id,
+                videoTitle: videoRow.title?.trim() || p.full_name,
+                role: p.role ?? "student",
+                quote: p.quote ?? null,
+                student,
+              }
+            : null
+
+          return { student, video }
         })
-        .filter(Boolean) as VideoItem[]
-
-      // ✅ 1) Teacher card = role==teacher (take first one if multiple)
-      const teacher = mapped.find((x) => x.role === "teacher") ?? null
-
-      // ✅ 2) Student list = ONLY role==student
-      const studentsOnly = mapped.filter((x) => x.role === "student")
+        .filter(Boolean)
+        .sort((a, b) => a!.student.name.localeCompare(b!.student.name)) as StudentListItem[]
 
       setTeacherVideo(teacher)
-      setStudentVideos(studentsOnly)
+      setStudentItems(studentsSorted)
       setLoading(false)
     })()
 
@@ -301,79 +388,76 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
       <SpecialDayHero specialDay={heroModel} />
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* ✅ TEACHER BIG CARD + "Үзэх" */}
-        {teacherVideo && (
-          <section className="mb-10">
-            <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
-              <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:p-8">
-                <div className="shrink-0">
-                  {teacherVideo.student.avatarUrl ? (
-                    <img
-                      src={teacherVideo.student.avatarUrl}
-                      alt={teacherVideo.student.name}
-                      className="h-28 w-28 rounded-3xl object-cover sm:h-36 sm:w-36"
-                    />
-                  ) : (
-                    <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-muted sm:h-36 sm:w-36">
-                      <UserRound className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
+      {teacherVideo && (
+        <section className="mb-10">
+          <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start gap-4 p-5 sm:gap-6 sm:p-7">
+              <div className="shrink-0">
+                {teacherVideo.student.avatarUrl ? (
+                  <img
+                    src={teacherVideo.student.avatarUrl}
+                    alt={teacherVideo.student.name}
+                    className="rounded-xl object-cover"
+                    style={{
+                      width: "325px",
+                      height: "325px",
+                      maxWidth: "325px",
+                      maxHeight: "325px",
+                      display: "block"
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="flex items-center justify-center rounded-xl bg-muted"
+                    style={{ width: "64px", height: "64px" }}
+                  >
+                    <UserRound className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="rounded-full px-3 py-1">
+                    Багш
+                  </Badge>
+
+                  {teacherVideo.student.bestTitle ? (
+                    <Badge className="rounded-full bg-[#ffbb98]/20 text-foreground hover:bg-[#ffbb98]/30">
+                      {teacherVideo.student.bestTitle}
+                    </Badge>
+                  ) : null}
                 </div>
 
-                <div className="flex-1">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-full px-3 py-1">
-                      Багш
-                    </Badge>
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  {teacherVideo.student.name}
+                </h2>
 
-                    {teacherVideo.student.bestTitle ? (
-                      <Badge className="rounded-full bg-[#ffbb98]/20 text-foreground hover:bg-[#ffbb98]/30">
-                        {teacherVideo.student.bestTitle}
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    {teacherVideo.student.name}
-                  </h2>
-
-                  <p className="mt-2 text-sm font-medium text-muted-foreground">
-                    {teacherVideo.videoTitle}
-                  </p>
-
-                  {teacherVideo.bio ? (
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                      {teacherVideo.bio}
-                    </p>
-                  ) : null}
-
-                  <div className="mt-5">
-                    <Button
-                      variant="outline"
-                      className="rounded-xl"
-                      onClick={() => openUnlockForVideo(teacherVideo)}
-                    >
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Үзэх
-                    </Button>
-                  </div>
+                <div className="mt-4 ml-0 flex justify-center sm:justify-start">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => openUnlockForVideo(teacherVideo)}
+                  >
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Үзэх
+                  </Button>
                 </div>
               </div>
             </div>
-          </section>
-        )}
-
-        {/* STUDENTS */}
+          </div>
+        </section>
+      )}
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <Users className="size-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Онцлох сурагчид</h2>
           </div>
 
-          {studentVideos.length > 0 ? (
+          {studentItems.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {studentVideos.map((item) => (
-                <div key={item.videoId} className="flex flex-col gap-2">
+              {studentItems.map((item) => (
+                <div key={item.student.id} className="flex flex-col gap-2">
                   <StudentCard
                     student={item.student}
                     showAchievementsCount={false}
@@ -383,9 +467,10 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
                   <Button
                     variant="outline"
                     className="w-full rounded-xl"
-                    onClick={() => openUnlockForVideo(item)}
+                    disabled={!item.video}
+                    onClick={() => item.video && openUnlockForVideo(item.video)}
                   >
-                    Үзэх
+                    {item.video ? "Үзэх" : "Видео алга"}
                   </Button>
                 </div>
               ))}
@@ -394,14 +479,13 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
             <div className="mt-4 flex justify-center">
               <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-background px-6 py-8 text-center shadow-sm">
                 <Users className="mb-1 h-6 w-6 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Одоогоор видео нэмээгүй байна.</p>
+                <p className="text-sm text-muted-foreground">Одоогоор сурагч нэмээгүй байна.</p>
               </div>
             </div>
           )}
         </section>
       </main>
 
-      {/* Unlock dialog (same for teacher + students) */}
       <Dialog
         open={unlockOpen}
         onOpenChange={(open) => {
@@ -420,11 +504,13 @@ export default function ProtectedVideoClient({ slug: slugProp }: { slug?: string
               <KeyRound className="size-4 text-muted-foreground" />
               {unlockVideo ? `${unlockVideo.student.name} — видео` : "Хувийн видео"}
             </DialogTitle>
-            <DialogDescription>Нууц үгээ оруулсны дараа видео гарч ирнэ.</DialogDescription>
+            <DialogDescription>
+              Нууц үгээ оруулсны дараа видео гарч ирнэ.
+            </DialogDescription>
           </DialogHeader>
 
           {!unlockedUrl ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 mt-4">
               <Input
                 type="password"
                 placeholder="Нууц үг"
